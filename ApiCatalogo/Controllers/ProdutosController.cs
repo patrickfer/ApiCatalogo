@@ -2,11 +2,12 @@
 using ApiCatalogo.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
 namespace ApiCatalogo.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     [ApiController]
     public class ProdutosController : ControllerBase
     {
@@ -18,9 +19,9 @@ namespace ApiCatalogo.Controllers
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<Produto>> Get()
+        public async Task <ActionResult<IEnumerable<Produto>>> Get()
         {
-            var produtos = _context.Produtos.ToList();
+            var produtos = await _context.Produtos.AsNoTracking().ToListAsync();
 
             if (produtos is null)
             {
@@ -29,10 +30,10 @@ namespace ApiCatalogo.Controllers
             return Ok(produtos);
         }
 
-        [HttpGet("{id:int}")]
-        public ActionResult Get(int id)
+        [HttpGet("{id:int}", Name="ObterProduto")]
+        public async Task<ActionResult> Get(int id)
         {
-            var produto = _context.Produtos.FirstOrDefault(p=> p.ProdutoId == id);
+            var produto = await _context.Produtos.FirstOrDefaultAsync(p=> p.ProdutoId == id);
 
             if (produto is null)
             {
@@ -54,6 +55,35 @@ namespace ApiCatalogo.Controllers
 
             return new CreatedAtRouteResult("ObterProduto",
                 new { id = produto.ProdutoId }, produto);
+        }
+
+        [HttpPut("{id:int}")]
+        public ActionResult Put(int id, Produto produto)
+        {
+            if (id != produto.ProdutoId)
+            {
+                return BadRequest();
+            }
+
+            _context.Entry(produto).State = EntityState.Modified;
+            _context.SaveChanges();
+
+            return Ok(produto);
+        }
+        [HttpDelete("{id:int}")]
+        public ActionResult Delete(int id)
+        {
+            var produto = _context.Produtos.FirstOrDefault(p => p.ProdutoId == id);
+
+            if (produto is null)
+            {
+                return NotFound("Produto não localizado...");
+            }
+
+            _context.Remove(produto);
+            _context.SaveChanges();
+
+            return Ok(produto);
         }
     }
 }
