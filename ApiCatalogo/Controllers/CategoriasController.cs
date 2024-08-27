@@ -1,4 +1,5 @@
 ﻿using ApiCatalogo.Context;
+using ApiCatalogo.Filters;
 using ApiCatalogo.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -11,23 +12,28 @@ namespace ApiCatalogo.Controllers
     public class CategoriasController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ILogger _logger;
 
-        public CategoriasController(AppDbContext context) 
+        public CategoriasController(AppDbContext context, ILogger<CategoriasController> logger) 
         {
             _context = context; 
+            _logger = logger;   
         }
 
         [HttpGet("produtos")]
         public ActionResult<IEnumerable<Categoria>> GetCategoriasProdutos()
         {
-            return _context.Categorias.Include(p=> p.Produtos).Where(c=> c.CategoriaId <= 5).Take(10).AsNoTracking().ToList();
+
+            _logger.LogInformation("=================GET api/categorias/produtos ======================");
+             return _context.Categorias.Include(p=> p.Produtos).Where(c=> c.CategoriaId <= 5).Take(10).AsNoTracking().ToList();  
         }
 
 
         [HttpGet]
-        public ActionResult<IEnumerable<Categoria>> Get()
+        [ServiceFilter(typeof(ApiLoggingFilter))]
+        public async Task <ActionResult<IEnumerable<Categoria>>> Get()
         {
-            return _context.Categorias.AsNoTracking().ToList();
+            return await _context.Categorias.AsNoTracking().ToListAsync();         
         }
 
         [HttpGet("{id:int}", Name = "ObterCategoria")]
