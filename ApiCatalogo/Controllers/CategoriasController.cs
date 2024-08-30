@@ -1,6 +1,7 @@
 ﻿using ApiCatalogo.Context;
 using ApiCatalogo.Filters;
 using ApiCatalogo.Models;
+using ApiCatalogo.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,39 +12,33 @@ namespace ApiCatalogo.Controllers
     [ApiController]
     public class CategoriasController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly ILogger _logger;
+        private readonly IRepository<Categoria> _repository;
+        private readonly ILogger<CategoriasController> _logger;
 
-        public CategoriasController(AppDbContext context, ILogger<CategoriasController> logger) 
+        public CategoriasController(IRepository<Categoria> repository, ILogger<CategoriasController> logger) 
         {
-            _context = context; 
+            _repository = repository; 
             _logger = logger;   
         }
 
-        [HttpGet("produtos")]
-        public ActionResult<IEnumerable<Categoria>> GetCategoriasProdutos()
-        {
-
-            _logger.LogInformation("=================GET api/categorias/produtos ======================");
-             return _context.Categorias.Include(p=> p.Produtos).Where(c=> c.CategoriaId <= 5).Take(10).AsNoTracking().ToList();  
-        }
-
-
         [HttpGet]
         [ServiceFilter(typeof(ApiLoggingFilter))]
-        public async Task <ActionResult<IEnumerable<Categoria>>> Get()
+        public ActionResult<IEnumerable<Categoria>> Get()
         {
-            return await _context.Categorias.AsNoTracking().ToListAsync();         
+            var categorias = _repository.GetAll();
+
+            return Ok(categorias);
         }
 
         [HttpGet("{id:int}", Name = "ObterCategoria")]
         public ActionResult Get(int id)
         {
-            var categoria = _context.Categorias.AsNoTracking().FirstOrDefault(c => c.CategoriaId == id);
+            var categoria = _repository.Get(c => c.CategoriaId == id);
 
             if (categoria is null)
             {
-                return NotFound("Categoria não encontrada.");
+                _logger.LogWarning($"Categoria com id= {id} não encontrada...");
+                return NotFound($"Categoria com id= {id} não encontrada...");
             }
             return Ok(categoria);
         }
@@ -53,14 +48,14 @@ namespace ApiCatalogo.Controllers
         {
             if (categoria is null)
             {
-                return BadRequest();
+                _logger.LogWarning($"Dados inválidos...");
+                return BadRequest("Dados inválidos");
             }
 
-            _context.Categorias.Add(categoria);
-            _context.SaveChanges();
+           var categoriaCriada = _repository.Create(categoria);
 
             return new CreatedAtRouteResult("ObterCategoria",
-                new { id = categoria.CategoriaId }, categoria);
+                new { id = categoriaCriada.CategoriaId }, categoriaCriada);
         }
 
         [HttpPut("{id:int}")]
@@ -68,11 +63,11 @@ namespace ApiCatalogo.Controllers
         {
             if (id != categoria.CategoriaId)
             {
-                return BadRequest();
+                _logger.LogWarning($"Dados inválidos...");
+                return BadRequest("Dados inválidos");
             }
 
-            _context.Entry(categoria).State = EntityState.Modified;
-            _context.SaveChanges();
+            _repository.Update(categoria);
 
             return Ok(categoria);
         }
@@ -80,17 +75,17 @@ namespace ApiCatalogo.Controllers
         [HttpDelete("{id:int}")]
         public ActionResult Delete(int id)
         {
-            var categoria = _context.Categorias.FirstOrDefault(c => c.CategoriaId == id);
+            var categoria = _repository.Get(c => c.CategoriaId == id);
 
             if (categoria is null)
             {
-                return NotFound("Categoria não localizada...");
+                _logger.LogWarning($"Categoria com id= {id} não encontrada...");
+                return NotFound($"Categoria com id= {id} não encontrada...");
             }
 
-            _context.Remove(categoria);
-            _context.SaveChanges();
+            var categoriaExcluida = _repository.Delete(categoria);
 
-            return Ok(categoria);
+            return Ok(categoriaExcluida);
         }
     }
 }
