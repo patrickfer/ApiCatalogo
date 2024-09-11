@@ -1,10 +1,14 @@
 ﻿using ApiCatalogo.Context;
+using ApiCatalogo.DTOs;
 using ApiCatalogo.Models;
 using ApiCatalogo.Repositories;
 using ApiCatalogo.Repositories.Produtos;
+using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 
 namespace ApiCatalogo.Controllers
@@ -13,18 +17,49 @@ namespace ApiCatalogo.Controllers
     [ApiController]
     public class ProdutosController : ControllerBase
     {
-        public readonly IUnitOfWork _uof;
+        private readonly IUnitOfWork _uof;
         public readonly ILogger<ProdutosController> _logger;
+        private readonly IMapper _mapper;
 
-        public ProdutosController(IUnitOfWork uof, ILogger<ProdutosController> logger)
+        private List<ValidationResult> ValidateChangedFields(JsonPatchDocument<ProdutoDTOUpdateRequest> patchDoc,
+                                     ProdutoDTOUpdateRequest produtoUpdateRequest)
+        {
+            var validationResults = new List<ValidationResult>();
+
+            foreach (var operation in patchDoc.Operations)
+            {
+                if (operation.path.Equals("/estoque", StringComparison.OrdinalIgnoreCase))
+                {
+                    var context = new ValidationContext(produtoUpdateRequest) { MemberName = nameof(produtoUpdateRequest.Estoque) };
+                    Validator.TryValidateProperty(produtoUpdateRequest.Estoque, context, validationResults);
+                }
+                else if (operation.path.Equals("/datacadastro", StringComparison.OrdinalIgnoreCase))
+                {
+                    var context = new ValidationContext(produtoUpdateRequest) { MemberName = nameof(produtoUpdateRequest.DataCadastro) };
+                    Validator.TryValidateProperty(produtoUpdateRequest.DataCadastro, context, validationResults);
+
+                    // Adiciona validação personalizada
+                    if (produtoUpdateRequest.DataCadastro.Date <= DateTime.Now.Date)
+                    {
+                        validationResults.Add(new ValidationResult("A data deve ser maior ou igual a data atual",
+                                              new[] { nameof(produtoUpdateRequest.DataCadastro) }));
+                    }
+                }
+            }
+            return validationResults;
+        }
+
+
+        public ProdutosController(IUnitOfWork uof, ILogger<ProdutosController> logger, IMapper mapper)
         {
             _uof = uof;
             _logger = logger;
+            _mapper = mapper;
         }
 
 
         [HttpGet("Categoria/{id}")]
-        public ActionResult<IEnumerable<Produto>> GetProdutosCategoria(int id)
+        public ActionResult<IEnumerable<ProdutoDTO>> GetProdutosCategoria(int id)
         {
             var produtos = _uof.ProdutoRepository.GetProdutosPorCategoria(id);
 
@@ -33,11 +68,14 @@ namespace ApiCatalogo.Controllers
                 return NotFound();
             }
 
-            return Ok(produtos);
+            //var destino = _mapper.Map<Destino>(origem);
+            var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
+
+            return Ok(produtosDto);
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<Produto>> Get()
+        public ActionResult<IEnumerable<ProdutoDTO>> Get()
         {
             var produtos = _uof.ProdutoRepository.GetAll().ToList();
 
@@ -45,7 +83,7 @@ namespace ApiCatalogo.Controllers
         }
 
         [HttpGet("{id:int}", Name="ObterProduto")]
-        public ActionResult Get(int id)
+        public ActionResult<ProdutoDTO> Get(int id)
         {
             var produto = _uof.ProdutoRepository.Get(p => p.ProdutoId == id);
 
@@ -54,39 +92,95 @@ namespace ApiCatalogo.Controllers
                 return NotFound("Produto não encontrado...");
             }
 
-            return Ok(produto);
+            var produtoDto = _mapper.Map<ProdutoDTO>(produto);
+
+            return Ok(produtoDto);
+        }
+
+        [HttpPatch("{id}/UpdatePartial")]
+        public ActionResult<ProdutoDTOUpdateResponse> Patch(int id,
+            JsonPatchDocument<ProdutoDTOUpdateRequest> patchProdutoDto)
+        {
+            if (patchProdutoDto is null || id <= 0)
+                return BadRequest();
+
+            var produto = _uof.ProdutoRepository.Get(c => c.ProdutoId == id);
+
+            if (produto is null)
+                return NotFound();
+
+            var produtoUpdateRequest = _mapper.Map<ProdutoDTOUpdateRequest>(produto);
+
+            if (produtoUpdateRequest is null)
+            {
+                return BadRequest("Ocorreu um erro ao mapear o produto.");
+            }
+
+            patchProdutoDto.ApplyTo(produtoUpdateRequest,ModelState);
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            // Validar apenas os campos alterados
+            var validationResults = ValidateChangedFields(patchProdutoDto, produtoUpdateRequest);
+
+            if (validationResults.Any())
+            {
+                foreach (var validationResult in validationResults)
+                {
+                    ModelState.AddModelError(validationResult.MemberNames.First(), validationResult.ErrorMessage);
+                }
+                return BadRequest(ModelState);
+            }
+
+            _mapper.Map(produtoUpdateRequest, produto);
+            _uof.ProdutoRepository.Update(produto);
+            _uof.Commit();
+
+            return Ok(_mapper.Map<ProdutoDTOUpdateResponse>(produto));
         }
 
         [HttpPost]
-        public ActionResult Post(Produto produto)
+        public ActionResult<ProdutoDTO> Post(ProdutoDTO produtoDto)
         {
-            if (produto is null)
+            if (produtoDto is null)
             {
                 return BadRequest();
             }
 
-           var novoProduto = _uof.ProdutoRepository.Create(produto);
+            var produto = _mapper.Map<Produto>(produtoDto);
+
+            var novoProduto = _uof.ProdutoRepository.Create(produto);
             _uof.Commit();
 
+            var novoProdutoDto = _mapper.Map<ProdutoDTO>(novoProduto);
+
             return new CreatedAtRouteResult("ObterProduto",
-                new { id = novoProduto.ProdutoId }, novoProduto);
+                new { id = novoProdutoDto.ProdutoId }, novoProdutoDto);
         }
 
         [HttpPut("{id:int}")]
-        public ActionResult Put(int id, Produto produto)
+        public ActionResult<ProdutoDTO>  Put(int id, ProdutoDTO produtoDto)
         {
-            if (id != produto.ProdutoId)
+            if (id != produtoDto.ProdutoId)
             {
                 return BadRequest();
             }
+
+            var produto = _mapper.Map<Produto>(produtoDto);
+
             var produtoAtualizado = _uof.ProdutoRepository.Update(produto);
             _uof.Commit();
 
-                return Ok(produtoAtualizado);
+            var produtoAtualizadoDto = _mapper.Map<Produto>(produtoAtualizado);
+
+            return Ok(produtoAtualizadoDto);
         }
 
         [HttpDelete("{id:int}")]
-        public ActionResult Delete(int id)
+        public ActionResult<ProdutoDTO> Delete(int id)
         {
            var produto = _uof.ProdutoRepository.Get(p => p.ProdutoId == id);
 
@@ -97,7 +191,11 @@ namespace ApiCatalogo.Controllers
 
             var produtoDeletado = _uof.ProdutoRepository.Delete(produto);
 
-            return Ok(produtoDeletado);
+            var produtoDeletadoDto = _mapper.Map<ProdutoDTO>(produtoDeletado);
+
+            return Ok(produtoDeletadoDto);
         }
     }
 }
+
+
