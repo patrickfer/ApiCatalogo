@@ -5,13 +5,10 @@ namespace ApiCatalogo.Repositories.Produtos
 {
     public interface IProdutoRepository : IRepository<Produto>
     {
-        IEnumerable<Produto> GetProdutos(ProdutosParameters produtosParams)
-        {
-            return GetAll()
-                .OrderBy(p =>p.Nome)
-                .Skip((produtosParams.PageNumber - 1) * produtosParams.PageSize)
-                .Take(produtosParams.PageSize).ToList();
-        }
+        //IEnumerable<Produto> GetProdutos(ProdutosParameters produtosParams);
+
+        PagedList<Produto> GetProdutos(ProdutosParameters produtosParams);
+        PagedList<Produto> GetProdutosFiltroPreco(ProdutosFiltroPreco produtosFiltroParams);
         IEnumerable<Produto> GetProdutosPorCategoria(int id);
     }
 }
