@@ -34,7 +34,7 @@ namespace ApiCatalogo.Logging
 
         private void WriteTextToFile(string message)
         {
-            string logFilePath = @"C:\Users\pbrito.MRM\Documents\Projetos Pessoais\ApiCatalogo\Logs\ApiCatalogo_Log.txt";
+            string logFilePath = @"C:\Users\pbrito.MRM\Documents\ProjetosPessoais\ApiCatalogo\Logs\ApiCatalogo_Log.txt";
 
             using (StreamWriter streamWriter = new StreamWriter(logFilePath, true))
             {
