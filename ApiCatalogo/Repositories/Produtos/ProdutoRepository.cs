@@ -2,6 +2,7 @@
 using ApiCatalogo.Models;
 using ApiCatalogo.Pagination;
 using Microsoft.EntityFrameworkCore;
+using X.PagedList;
 
 namespace ApiCatalogo.Repositories.Produtos
 {
@@ -18,17 +19,24 @@ namespace ApiCatalogo.Repositories.Produtos
         //        .Take(produtosParams.PageSize).ToList();
         //}
 
-        public PagedList<Produto> GetProdutos(ProdutosParameters produtosParams)
+        public async Task<IPagedList<Produto>> GetProdutosAsync(ProdutosParameters produtosParams)
         {
-            var produtos = GetAll().OrderBy(p => p.ProdutoId).AsQueryable();
-            var produtosOrdenados = PagedList<Produto>.ToPagedList(produtos, produtosParams.PageNumber, produtosParams.PageSize); 
+            var produtos = await GetAllAsync();
+            var produtosOrdenados = produtos.OrderBy(
+                                    p => p.ProdutoId)
+                                    .AsQueryable();
+            //var resultado = PagedList<Produto>.ToPagedList(produtosOrdenados, produtosParams.PageNumber, produtosParams.PageSize);
+
+            var resultado = await produtosOrdenados.ToPagedListAsync(
+                                                    produtosParams.PageNumber,
+                                                    produtosParams.PageSize);
             
-            return produtosOrdenados;
+            return resultado;
         }
 
-        public PagedList<Produto> GetProdutosFiltroPreco(ProdutosFiltroPreco produtosFiltroParams)
+        public async Task<IPagedList<Produto>> GetProdutosFiltroPrecoAsync(ProdutosFiltroPreco produtosFiltroParams)
         {
-            var produtos = GetAll().AsQueryable();
+            var produtos = await GetAllAsync();
 
             if (produtosFiltroParams.Preco.HasValue && !string.IsNullOrEmpty(produtosFiltroParams.PrecoCriterio))
             {
@@ -47,15 +55,22 @@ namespace ApiCatalogo.Repositories.Produtos
                 }
             }
 
-            var produtosFiltrados = PagedList<Produto>.ToPagedList(produtos, produtosFiltroParams.PageNumber,
-                                                                                                  produtosFiltroParams.PageSize);
+            //var produtosFiltrados = PagedList<Produto>.ToPagedList(produtos.AsQueryable(), produtosFiltroParams.PageNumber,
+            //                                                                                      produtosFiltroParams.PageSize);
+
+            var produtosFiltrados = await produtos.AsQueryable()
+                                            .ToPagedListAsync(
+                                            produtosFiltroParams.PageNumber,
+                                            produtosFiltroParams.PageSize);
 
             return produtosFiltrados;
         }
 
-        public IEnumerable<Produto> GetProdutosPorCategoria(int id)
+        public async Task<IEnumerable<Produto>> GetProdutosPorCategoriaAsync(int id)
         {
-            return GetAll().Where(c => c.CategoriaId == id);
+           var produtos = await GetAllAsync();
+
+            return produtos.Where(c => c.CategoriaId == id);
         }
 
     }

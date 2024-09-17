@@ -3,6 +3,7 @@ using ApiCatalogo.Models;
 using ApiCatalogo.Pagination;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
+using X.PagedList;
 
 namespace ApiCatalogo.Repositories.Categorias
 {
@@ -12,26 +13,44 @@ namespace ApiCatalogo.Repositories.Categorias
         {
         }
 
-        public PagedList<Categoria> GetCategorias(CategoriasParameters categoriasParams)
+        public async Task<IPagedList<Categoria>> GetCategoriasAsync(CategoriasParameters categoriasParams)
         {
-            var categorias = GetAll().OrderBy(c => c.CategoriaId).AsQueryable();
-            var categoriasOrdenadas = PagedList<Categoria>.ToPagedList(categorias,
-                                                                        categoriasParams.PageNumber, categoriasParams.PageSize);
+            var categorias = await GetAllAsync();
 
-            return categoriasOrdenadas;
+            var categoriasOrdenadas = categorias.OrderBy(
+                                      c => c.CategoriaId)
+                                      .AsQueryable();
+
+            //var resultado = PagedList<Categoria>.ToPagedList(categoriasOrdenadas,
+            //                                                            categoriasParams.PageNumber, categoriasParams.PageSize);
+
+            var resultado = await categoriasOrdenadas
+                                    .ToPagedListAsync(
+                                    categoriasParams.PageNumber,
+                                    categoriasParams.PageSize);
+
+            return resultado;
         }
 
-        public PagedList<Categoria> GetCategoriasFiltroNome(CategoriasFiltroNome categoriasFiltroParams)
+        public async Task<IPagedList<Categoria>> GetCategoriasFiltroNomeAsync(CategoriasFiltroNome categoriasFiltroParams)
         {
-            var categorias = GetAll().AsQueryable();
+            var categorias = await GetAllAsync();
 
             if (!string.IsNullOrEmpty(categoriasFiltroParams.Nome))
             {
-                categorias = categorias.Where(c => c.Nome.Contains(categoriasFiltroParams.Nome, StringComparison.OrdinalIgnoreCase));
+                categorias = categorias.Where(
+                                        c => c.Nome
+                                        .Contains(
+                                         categoriasFiltroParams.Nome, 
+                                         StringComparison.OrdinalIgnoreCase));
             }
 
-            var categoriasFiltradas = PagedList<Categoria>.ToPagedList(categorias, categoriasFiltroParams.PageNumber,
-                                                                                                          categoriasFiltroParams.PageSize);
+            //var categoriasFiltradas = PagedList<Categoria>.ToPagedList(categorias.AsQueryable(), categoriasFiltroParams.PageNumber,
+            //                                                                                              categoriasFiltroParams.PageSize);
+
+            var categoriasFiltradas = await categorias.ToPagedListAsync(
+                                                       categoriasFiltroParams.PageNumber,
+                                                       categoriasFiltroParams.PageSize);
 
             return categoriasFiltradas;
         }
