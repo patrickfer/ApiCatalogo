@@ -9,7 +9,7 @@ namespace ApiCatalogo.Context
         public AppDbContext(DbContextOptions<AppDbContext> options) : 
                                                            base( options )
         {
-
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
         }
 
         public DbSet<Categoria>? Categorias { get; set; }
