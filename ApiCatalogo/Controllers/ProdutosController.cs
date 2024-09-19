@@ -5,6 +5,7 @@ using ApiCatalogo.Pagination;
 using ApiCatalogo.Repositories;
 using ApiCatalogo.Repositories.Produtos;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
@@ -18,6 +19,7 @@ using X.PagedList;
 namespace ApiCatalogo.Controllers
 {
     [Route("[controller]")]
+    [Authorize]
     [ApiController]
     public class ProdutosController : ControllerBase
     {

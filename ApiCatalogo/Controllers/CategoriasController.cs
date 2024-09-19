@@ -6,6 +6,7 @@ using ApiCatalogo.Models;
 using ApiCatalogo.Pagination;
 using ApiCatalogo.Repositories;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,7 @@ using X.PagedList;
 namespace ApiCatalogo.Controllers
 {
     [Route("[controller]")]
+    [Authorize]
     [ApiController]
     public class CategoriasController : ControllerBase
     {
