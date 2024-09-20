@@ -18,8 +18,9 @@ using X.PagedList;
 
 namespace ApiCatalogo.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
+    [Route("[controller]")]
+    [Produces("application/json")]
     public class ProdutosController : ControllerBase
     {
         private readonly IUnitOfWork _uof;
@@ -177,7 +178,7 @@ namespace ApiCatalogo.Controllers
             {
                 foreach (var validationResult in validationResults)
                 {
-                    ModelState.AddModelError(validationResult.MemberNames.First(), validationResult.ErrorMessage);
+                    ModelState.AddModelError(validationResult.MemberNames.First(), validationResult.ErrorMessage!);
                 }
                 return BadRequest(ModelState);
             }

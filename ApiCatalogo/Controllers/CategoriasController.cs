@@ -9,6 +9,7 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System.Net;
@@ -16,8 +17,9 @@ using X.PagedList;
 
 namespace ApiCatalogo.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
+    [Route("[controller]")]
+    [Produces("application/json")]
     public class CategoriasController : ControllerBase
     {
         public readonly IUnitOfWork _uof;
@@ -28,6 +30,11 @@ namespace ApiCatalogo.Controllers
             _uof = uof; 
             _logger = logger;
         }
+
+        /// <summary>
+        /// Obtem todas categorias
+        /// </summary>
+        /// <returns>Objetos Categoria</returns>
 
         [HttpGet]
         [ServiceFilter(typeof(ApiLoggingFilter))]
@@ -106,7 +113,7 @@ namespace ApiCatalogo.Controllers
 
             var categoria = categoriaDto.ToCategoria();
 
-            var categoriaCriada = _uof.CategoriaRepository.Create(categoria);
+            var categoriaCriada = _uof.CategoriaRepository.Create(categoria!);
            await _uof.CommitAsync();
 
             var novaCategoriaDto = categoriaCriada.ToCategoriaDTO();
@@ -126,7 +133,7 @@ namespace ApiCatalogo.Controllers
 
             var categoria = categoriaDto.ToCategoria();
 
-            var categoriaAtualizada = _uof.CategoriaRepository.Update(categoria);
+            var categoriaAtualizada = _uof.CategoriaRepository.Update(categoria!);
             await _uof.CommitAsync();
 
             var categoriaAtualizadaDto = categoriaAtualizada.ToCategoriaDTO();
