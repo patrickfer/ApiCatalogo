@@ -104,7 +104,7 @@ builder.Services.AddAuthorization(options =>
 
     options.AddPolicy("UserOnly", policy => policy.RequireRole("User"));
 
-    options.AddPolicy("ExclusivePolicyOnly", policy =>
+    options.AddPolicy("ExclusiveOnly", policy =>
                      policy.RequireAssertion(context =>
                      context.User.HasClaim(claim =>
                                             claim.Type == "id" && claim.Value == "pbrito")

@@ -19,7 +19,6 @@ using X.PagedList;
 namespace ApiCatalogo.Controllers
 {
     [Route("[controller]")]
-    [Authorize]
     [ApiController]
     public class ProdutosController : ControllerBase
     {
@@ -117,6 +116,7 @@ namespace ApiCatalogo.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "UserOnly")]
         public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get()
         {
             var produtos = await _uof.ProdutoRepository.GetAllAsync();
