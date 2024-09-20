@@ -12,13 +12,10 @@ namespace ApiCatalogo.Repositories
 
         public AppDbContext _context;
 
-        public UnitOfWork (AppDbContext context, IProdutoRepository produtoRepo, ICategoriaRepository categoriaRepo)
+        public UnitOfWork (AppDbContext context)
         {
             _context = context;
-            _produtoRepo = produtoRepo;
-            _categoriaRepo = categoriaRepo;
         }
-
         public IProdutoRepository ProdutoRepository
         {
             get

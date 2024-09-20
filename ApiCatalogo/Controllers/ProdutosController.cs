@@ -24,7 +24,6 @@ namespace ApiCatalogo.Controllers
     public class ProdutosController : ControllerBase
     {
         private readonly IUnitOfWork _uof;
-        public readonly ILogger<ProdutosController> _logger;
         private readonly IMapper _mapper;
 
         private List<ValidationResult> ValidateChangedFields(JsonPatchDocument<ProdutoDTOUpdateRequest> patchDoc,
@@ -56,10 +55,9 @@ namespace ApiCatalogo.Controllers
         }
 
 
-        public ProdutosController(IUnitOfWork uof, ILogger<ProdutosController> logger, IMapper mapper)
+        public ProdutosController(IUnitOfWork uof, IMapper mapper)
         {
             _uof = uof;
-            _logger = logger;
             _mapper = mapper;
         }
 
@@ -130,6 +128,9 @@ namespace ApiCatalogo.Controllers
             return Ok(produtosDto);
         }
 
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [HttpGet("{id:int}", Name="ObterProduto")]
         public async Task<ActionResult<ProdutoDTO>> Get(int id)
         {
